@@ -26,6 +26,7 @@ class Settings(BaseSettings):
     # Gemini
     gemini_api_key: str = ""
     gemini_model: str = ""
+    gemini_fallback_model: str = ""
 
     # Mistral
     mistral_api_key: str = ""
@@ -44,8 +45,11 @@ class Settings(BaseSettings):
     whisper_model_size: str = "small"
     whisper_compute_type: str = "int8"
 
-    # Images
+    # Images and requests
     max_image_side: int = 1024
+    max_upload_mb: int = 10
+    vlm_timeout_seconds: float = 40.0
+    vlm_max_retries: int = 3
 
     @property
     def cors_origin_list(self) -> list[str]:
