@@ -1,4 +1,5 @@
 import time
+from pathlib import Path
 
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.concurrency import run_in_threadpool
@@ -14,11 +15,14 @@ from app.prompts import (
     default_question,
 )
 from app.providers import ProviderError, get_provider
+from app.stt import SttError, transcribe_audio
+
+MAX_AUDIO_MB = 25
 
 app = FastAPI(
     title="Voice Vision Assistant API",
     description="Voice-first image description assistant for visually impaired users.",
-    version="0.3.0",
+    version="0.4.0",
 )
 
 app.add_middleware(
@@ -45,6 +49,7 @@ def health() -> dict:
         "provider": provider,
         "model": model,
         "provider_configured": configured,
+        "whisper_model": settings.whisper_model_size,
     }
 
 
@@ -117,5 +122,41 @@ async def describe(
             "preprocess": round((t_prepared - t_start) * 1000),
             "vlm": round(result.latency_ms),
             "total": round((t_end - t_start) * 1000),
+        },
+    }
+
+
+@app.post("/api/stt", tags=["speech"])
+async def stt(
+    audio: UploadFile = File(...),
+    lang: str = Form(""),
+) -> dict:
+    """Speech to text. Leave `lang` empty to auto-detect (ar / fr / en)."""
+    if lang and lang not in LANGUAGE_NAMES:
+        raise HTTPException(400, f"lang must be empty or one of: {', '.join(LANGUAGE_NAMES)}")
+
+    t_start = time.perf_counter()
+    raw = await audio.read()
+    if not raw:
+        raise HTTPException(400, "The uploaded audio file is empty.")
+    if len(raw) > MAX_AUDIO_MB * 1024 * 1024:
+        raise HTTPException(413, f"Audio is larger than {MAX_AUDIO_MB} MB.")
+
+    suffix = Path(audio.filename or "").suffix or ".webm"
+    try:
+        result = await run_in_threadpool(transcribe_audio, raw, suffix, lang or None)
+    except SttError as exc:
+        raise HTTPException(400, str(exc)) from exc
+
+    return {
+        "text": result.text,
+        "no_speech": not result.text,
+        "language": result.language,
+        "language_probability": result.language_probability,
+        "audio_seconds": result.duration_s,
+        "model_loaded_now": result.model_loaded_now,
+        "timings_ms": {
+            "transcribe": round(result.transcribe_ms),
+            "total": round((time.perf_counter() - t_start) * 1000),
         },
     }
