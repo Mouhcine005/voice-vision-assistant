@@ -52,3 +52,32 @@ def test_describe_success_with_fake_provider(monkeypatch):
     assert body["text"] == "A test description."
     assert body["provider"] == "fake"
     assert "timings_ms" in body
+
+
+def test_describe_rejects_bad_mode():
+    r = client.post(
+        "/api/describe",
+        files={"image": ("x.png", _png(), "image/png")},
+        data={"mode": "banana"},
+    )
+    assert r.status_code == 400
+
+
+def test_describe_passes_mode_to_response(monkeypatch):
+    monkeypatch.setattr("app.main.get_provider", lambda: FakeProvider())
+    r = client.post(
+        "/api/describe",
+        files={"image": ("x.png", _png(), "image/png")},
+        data={"mode": "read", "lang": "ar", "detail": "detailed"},
+    )
+    assert r.status_code == 200
+    body = r.json()
+    assert body["mode"] == "read"
+    assert body["lang"] == "ar"
+    assert body["detail"] == "detailed"
+
+
+def test_modes_endpoint():
+    r = client.get("/api/modes")
+    assert r.status_code == 200
+    assert "find" in r.json()["modes"]

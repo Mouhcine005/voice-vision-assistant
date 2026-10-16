@@ -6,13 +6,19 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
 from app.imaging import ImageError, prepare_image
-from app.prompts import LANGUAGE_NAMES, build_system_prompt
+from app.prompts import (
+    LANGUAGE_NAMES,
+    VALID_DETAILS,
+    VALID_MODES,
+    build_system_prompt,
+    default_question,
+)
 from app.providers import ProviderError, get_provider
 
 app = FastAPI(
     title="Voice Vision Assistant API",
     description="Voice-first image description assistant for visually impaired users.",
-    version="0.2.0",
+    version="0.3.0",
 )
 
 app.add_middleware(
@@ -22,8 +28,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-VALID_DETAILS = {"brief", "detailed"}
 
 
 @app.get("/api/health", tags=["system"])
@@ -44,18 +48,31 @@ def health() -> dict:
     }
 
 
+@app.get("/api/modes", tags=["system"])
+def modes() -> dict:
+    """Modes, languages and detail levels the frontend can offer."""
+    return {
+        "modes": list(VALID_MODES),
+        "languages": LANGUAGE_NAMES,
+        "details": list(VALID_DETAILS),
+    }
+
+
 @app.post("/api/describe", tags=["vision"])
 async def describe(
     image: UploadFile = File(...),
     question: str = Form(""),
     lang: str = Form("en"),
     detail: str = Form("brief"),
+    mode: str = Form("describe"),
 ) -> dict:
-    """Describe an uploaded image (or answer a question about it) in the chosen language."""
+    """Describe an uploaded image (or answer a question about it) in the chosen mode."""
     if lang not in LANGUAGE_NAMES:
         raise HTTPException(400, f"lang must be one of: {', '.join(LANGUAGE_NAMES)}")
     if detail not in VALID_DETAILS:
-        raise HTTPException(400, f"detail must be one of: {', '.join(sorted(VALID_DETAILS))}")
+        raise HTTPException(400, f"detail must be one of: {', '.join(VALID_DETAILS)}")
+    if mode not in VALID_MODES:
+        raise HTTPException(400, f"mode must be one of: {', '.join(VALID_MODES)}")
 
     t_start = time.perf_counter()
 
@@ -72,8 +89,8 @@ async def describe(
     try:
         provider = get_provider()
         result = await provider.generate(
-            system_prompt=build_system_prompt(lang, detail),
-            user_text=question.strip() or "Describe this image.",
+            system_prompt=build_system_prompt(lang, detail, mode),
+            user_text=question.strip() or default_question(mode),
             image_bytes=prepared.data,
             mime_type=prepared.mime_type,
         )
@@ -83,6 +100,9 @@ async def describe(
 
     return {
         "text": result.text,
+        "mode": mode,
+        "lang": lang,
+        "detail": detail,
         "provider": result.provider,
         "model": result.model,
         "used_fallback": result.used_fallback,
