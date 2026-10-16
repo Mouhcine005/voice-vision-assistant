@@ -1,9 +1,11 @@
 import time
 from pathlib import Path
+from typing import Literal
 
-from fastapi import FastAPI, File, Form, HTTPException, UploadFile
+from fastapi import FastAPI, File, Form, HTTPException, Response, UploadFile
 from fastapi.concurrency import run_in_threadpool
 from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel, Field
 
 from app.config import settings
 from app.imaging import ImageError, prepare_image
@@ -16,13 +18,14 @@ from app.prompts import (
 )
 from app.providers import ProviderError, get_provider
 from app.stt import SttError, transcribe_audio
+from app.tts import TtsError, synthesize
 
 MAX_AUDIO_MB = 25
 
 app = FastAPI(
     title="Voice Vision Assistant API",
     description="Voice-first image description assistant for visually impaired users.",
-    version="0.4.0",
+    version="0.5.0",
 )
 
 app.add_middleware(
@@ -31,6 +34,7 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["X-TTS-Voice", "X-TTS-Ms"],
 )
 
 
@@ -160,3 +164,26 @@ async def stt(
             "total": round((time.perf_counter() - t_start) * 1000),
         },
     }
+
+
+class TtsRequest(BaseModel):
+    text: str = Field(min_length=1, max_length=1500)
+    lang: Literal["en", "fr", "ar"] = "en"
+    speed: float = Field(default=1.0, ge=0.5, le=2.0)
+
+
+@app.post("/api/tts", tags=["speech"])
+async def tts(req: TtsRequest) -> Response:
+    """Text to speech. Returns MP3 audio. If this fails, the frontend can use the browser voice."""
+    try:
+        result = await synthesize(req.text, req.lang, req.speed)
+    except TtsError as exc:
+        raise HTTPException(502, str(exc)) from exc
+    return Response(
+        content=result.audio,
+        media_type="audio/mpeg",
+        headers={
+            "X-TTS-Voice": result.voice,
+            "X-TTS-Ms": str(round(result.synth_ms)),
+        },
+    )

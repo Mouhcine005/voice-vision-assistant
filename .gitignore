@@ -13,3 +13,6 @@ dist/
 # Local data
 *.db
 *.sqlite
+
+# Generated audio
+backend/benchmark/tts_out/

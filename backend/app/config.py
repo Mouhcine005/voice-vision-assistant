@@ -24,8 +24,8 @@ class Settings(BaseSettings):
     vlm_provider: str = "gemini"
 
     # Gemini
-    gemini_api_key: str = ""
-    gemini_model: str = ""
+    gemini_api_key: str = "AQ.Ab8RN6KaYjamrn9tcsFtWP8oIgrfEBw6WPTjxgOxiJpsBbK0eg"
+    gemini_model: str = "gemini-3.5-flash-lite"
     gemini_fallback_model: str = ""
 
     # Mistral
@@ -41,9 +41,17 @@ class Settings(BaseSettings):
     ollama_base_url: str = "http://localhost:11434"
     ollama_model: str = ""
 
-    # Speech
+    # Speech to text
     whisper_model_size: str = "small"
     whisper_compute_type: str = "int8"
+    whisper_beam_size: int = 1
+    whisper_cpu_threads: int = 0  # 0 = library default
+
+    # Text to speech
+    tts_voice_en: str = "en-US-AriaNeural"
+    tts_voice_fr: str = "fr-FR-DeniseNeural"
+    tts_voice_ar: str = "ar-MA-MounaNeural"
+    tts_timeout_seconds: float = 20.0
 
     # Images and requests
     max_image_side: int = 1024
