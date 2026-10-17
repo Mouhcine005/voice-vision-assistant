@@ -17,6 +17,7 @@ from app.prompts import (
     default_question,
 )
 from app.providers import ProviderError, get_provider
+from app.quality import analyze_quality
 from app.stt import SttError, transcribe_audio
 from app.tts import TtsError, synthesize
 
@@ -25,7 +26,7 @@ MAX_AUDIO_MB = 25
 app = FastAPI(
     title="Voice Vision Assistant API",
     description="Voice-first image description assistant for visually impaired users.",
-    version="0.5.0",
+    version="0.6.0",
 )
 
 app.add_middleware(
@@ -67,6 +68,33 @@ def modes() -> dict:
     }
 
 
+async def _read_and_prepare(image: UploadFile):
+    """Read the upload, enforce the size limit, resize and re-encode it."""
+    raw = await image.read()
+    if len(raw) > settings.max_upload_mb * 1024 * 1024:
+        raise HTTPException(413, f"Image is larger than {settings.max_upload_mb} MB.")
+    try:
+        return await run_in_threadpool(prepare_image, raw)
+    except ImageError as exc:
+        raise HTTPException(400, str(exc)) from exc
+
+
+@app.post("/api/quality", tags=["vision"])
+async def quality(
+    image: UploadFile = File(...),
+    lang: str = Form("en"),
+) -> dict:
+    """Fast photo quality check (too dark, too bright, blurry, flat). No AI model is called."""
+    if lang not in LANGUAGE_NAMES:
+        raise HTTPException(400, f"lang must be one of: {', '.join(LANGUAGE_NAMES)}")
+    t_start = time.perf_counter()
+    prepared = await _read_and_prepare(image)
+    report = await run_in_threadpool(analyze_quality, prepared.data)
+    body = report.to_dict(lang)
+    body["timings_ms"] = {"total": round((time.perf_counter() - t_start) * 1000)}
+    return body
+
+
 @app.post("/api/describe", tags=["vision"])
 async def describe(
     image: UploadFile = File(...),
@@ -74,8 +102,13 @@ async def describe(
     lang: str = Form("en"),
     detail: str = Form("brief"),
     mode: str = Form("describe"),
+    force: bool = Form(False),
 ) -> dict:
-    """Describe an uploaded image (or answer a question about it) in the chosen mode."""
+    """Describe an uploaded image (or answer a question about it) in the chosen mode.
+
+    If the photo is unusable (very dark, very blurry...), the AI model is NOT called and
+    the answer is spoken-friendly advice for retaking the photo. Send force=true to skip this check.
+    """
     if lang not in LANGUAGE_NAMES:
         raise HTTPException(400, f"lang must be one of: {', '.join(LANGUAGE_NAMES)}")
     if detail not in VALID_DETAILS:
@@ -84,16 +117,40 @@ async def describe(
         raise HTTPException(400, f"mode must be one of: {', '.join(VALID_MODES)}")
 
     t_start = time.perf_counter()
-
-    raw = await image.read()
-    if len(raw) > settings.max_upload_mb * 1024 * 1024:
-        raise HTTPException(413, f"Image is larger than {settings.max_upload_mb} MB.")
-
-    try:
-        prepared = await run_in_threadpool(prepare_image, raw)
-    except ImageError as exc:
-        raise HTTPException(400, str(exc)) from exc
+    prepared = await _read_and_prepare(image)
     t_prepared = time.perf_counter()
+
+    report = await run_in_threadpool(analyze_quality, prepared.data)
+    quality_dict = report.to_dict(lang)
+    t_quality = time.perf_counter()
+
+    image_info = {
+        "width": prepared.width,
+        "height": prepared.height,
+        "original_bytes": prepared.original_bytes,
+        "sent_bytes": len(prepared.data),
+    }
+
+    if report.severity == "bad" and not force:
+        return {
+            "text": quality_dict["advice"],
+            "skipped_model": True,
+            "mode": mode,
+            "lang": lang,
+            "detail": detail,
+            "provider": None,
+            "model": None,
+            "used_fallback": False,
+            "attempts": 0,
+            "quality": quality_dict,
+            "image": image_info,
+            "timings_ms": {
+                "preprocess": round((t_prepared - t_start) * 1000),
+                "quality": round((t_quality - t_prepared) * 1000),
+                "vlm": 0,
+                "total": round((time.perf_counter() - t_start) * 1000),
+            },
+        }
 
     try:
         provider = get_provider()
@@ -109,6 +166,7 @@ async def describe(
 
     return {
         "text": result.text,
+        "skipped_model": False,
         "mode": mode,
         "lang": lang,
         "detail": detail,
@@ -116,14 +174,11 @@ async def describe(
         "model": result.model,
         "used_fallback": result.used_fallback,
         "attempts": result.attempts,
-        "image": {
-            "width": prepared.width,
-            "height": prepared.height,
-            "original_bytes": prepared.original_bytes,
-            "sent_bytes": len(prepared.data),
-        },
+        "quality": quality_dict,
+        "image": image_info,
         "timings_ms": {
             "preprocess": round((t_prepared - t_start) * 1000),
+            "quality": round((t_quality - t_prepared) * 1000),
             "vlm": round(result.latency_ms),
             "total": round((t_end - t_start) * 1000),
         },
