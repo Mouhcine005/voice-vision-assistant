@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
+import i18n from '../i18n'
 import { playCue } from '../audioCue'
 import { VoiceRecorder } from '../recorder'
 import { stopSpeaking } from '../speech'
@@ -13,17 +15,18 @@ const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve,
 function micErrorMessage(err: unknown): string {
   const name = err instanceof DOMException ? err.name : ''
   if (name === 'NotAllowedError' || name === 'SecurityError') {
-    return 'Microphone access was blocked. Allow the microphone for this site in the browser, then try again.'
+    return i18n.t('micBlocked')
   }
-  if (name === 'NotFoundError' || name === 'OverconstrainedError') return 'No microphone was found.'
-  if (name === 'NotReadableError') return 'The microphone is busy in another application.'
+  if (name === 'NotFoundError' || name === 'OverconstrainedError') return i18n.t('micNotFound')
+  if (name === 'NotReadableError') return i18n.t('micBusy')
   if (name === 'NotSupportedError') {
-    return 'Recording is not supported here. Use a recent Chrome on localhost or HTTPS.'
+    return i18n.t('micUnsupported')
   }
-  return 'Could not start the microphone.'
+  return i18n.t('micGeneric')
 }
 
 export default function VoicePanel() {
+  const { t } = useTranslation()
   const busy = useStore((s) => s.busy)
   const sendAudio = useStore((s) => s.sendAudio)
   const notify = useStore((s) => s.notify)
@@ -40,11 +43,11 @@ export default function VoicePanel() {
     const result = await rec.stop()
     playCue('stop')
     if (!result.heardSpeech) {
-      notify('I did not hear a question. Speak a little closer to the microphone and try again.')
+      notify(i18n.t('noSpeechHeard'))
       return
     }
     if (result.durationMs < MIN_RECORDING_MS) {
-      notify('Recording was too short. Press the microphone button and ask your question.')
+      notify(i18n.t('tooShort'))
       return
     }
     void sendAudio(result.blob)
@@ -61,7 +64,7 @@ export default function VoicePanel() {
     const { busy: isBusy, photoUrl } = useStore.getState()
     if (isBusy) return
     if (!photoUrl) {
-      notify('Send a photo first.')
+      notify(i18n.t('needPhoto'))
       return
     }
     stopSpeaking()
@@ -145,23 +148,23 @@ export default function VoicePanel() {
 
   const recording = phase === 'recording'
   const label = busy
-    ? 'Thinking...'
+    ? t('thinking')
     : phase === 'starting'
-      ? 'Getting the microphone...'
+      ? t('voiceStarting')
       : recording
-        ? 'Listening... tap to stop'
-        : 'Ask by voice'
+        ? t('voiceListening')
+        : t('voiceAsk')
   const status =
     phase === 'recording'
-      ? 'Listening. Speak your question, then pause, or press Space to stop.'
+      ? t('statusListening')
       : phase === 'starting'
-        ? 'Getting the microphone.'
+        ? t('statusStarting')
         : ''
 
   return (
     <section aria-labelledby="voice-heading" className="rounded-2xl border border-border bg-surface p-6">
       <h2 id="voice-heading" className="text-lg font-semibold">
-        Voice
+        {t('voice')}
       </h2>
       <div className="mt-4 flex flex-col items-center gap-4">
         <span ref={orbRef} className="inline-block will-change-transform">
@@ -180,7 +183,7 @@ export default function VoicePanel() {
         <p role="status" className="min-h-7 text-center text-lg">
           {status}
         </p>
-        <p className="text-center text-muted">Press Space to start and stop. Escape cancels.</p>
+        <p className="text-center text-muted">{t('voiceHelp')}</p>
       </div>
     </section>
   )

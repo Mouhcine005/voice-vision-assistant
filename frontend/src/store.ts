@@ -3,8 +3,9 @@ import { persist } from 'zustand/middleware'
 import { ApiError, ask, createSession, deleteSession } from './api/client'
 import type { AskResponse, Detail, Lang, Mode, Timings } from './api/types'
 import { speak, stopSpeaking } from './speech'
+import i18n from './i18n'
 
-export type Message = { id: number; role: 'user' | 'assistant'; text: string }
+export type Message = { id: number; role: 'user' | 'assistant'; text: string; lang: Lang }
 
 type Settings = {
   lang: Lang
@@ -31,17 +32,24 @@ type Store = Settings & {
 }
 
 let nextId = 1
-const msg = (role: Message['role'], text: string): Message => ({ id: nextId++, role, text })
+const msg = (role: Message['role'], text: string): Message => ({
+  id: nextId++,
+  role,
+  text,
+  lang: i18n.language as Lang,
+})
 
 function describeError(err: unknown): string {
   if (err instanceof ApiError) {
     if (err.status === 429) {
-      return `Too many requests. Try again in ${err.retryAfter ?? 'a few'} seconds.`
+      return err.retryAfter
+        ? i18n.t('errTooMany', { seconds: err.retryAfter })
+        : i18n.t('errTooManySoon')
     }
-    if (err.status === 502) return 'The vision service is not answering right now. Please try again.'
+    if (err.status === 502) return i18n.t('errVision')
     return err.message
   }
-  return 'Could not reach the server. Is the backend running?'
+  return i18n.t('errUnreachable')
 }
 
 const persistOptions = {
@@ -63,7 +71,7 @@ export const useStore = create<Store>()(persist((set, get) => {
       if (how === 'unavailable' && get().error === null) {
         set({
           error:
-            'No voice is available for this language on this device. Please read the answer on screen.',
+            i18n.t('errNoVoice'),
         })
       }
     })
@@ -124,7 +132,7 @@ export const useStore = create<Store>()(persist((set, get) => {
       set({ busy: true, error: null, photoUrl: url })
       try {
         const res = await callAsk({ image: file }, true)
-        const label = msg('user', `Photo: ${file.name || 'camera photo'}`)
+        const label = msg('user', i18n.t('photoMessage', { name: file.name || i18n.t('cameraPhoto') }))
         const answer = msg('assistant', res.text)
         if (!res.skipped_model) {
           if (previousUrl) URL.revokeObjectURL(previousUrl)
@@ -151,7 +159,7 @@ export const useStore = create<Store>()(persist((set, get) => {
       const text = raw.trim()
       if (!text || get().busy) return
       if (!get().photoUrl) {
-        const message = 'Send a photo first.'
+        const message = i18n.t('needPhoto')
         set({ error: message })
         say(message)
         return
@@ -171,7 +179,7 @@ export const useStore = create<Store>()(persist((set, get) => {
           const url = get().photoUrl
           if (url) URL.revokeObjectURL(url)
           set({ sessionId: null, photoUrl: null })
-          fail(new ApiError('The session expired. Please send the photo again.', 404))
+          fail(new ApiError(i18n.t('errSessionExpired'), 404))
           return
         }
         fail(err)
@@ -181,7 +189,7 @@ export const useStore = create<Store>()(persist((set, get) => {
     sendAudio: async (audio) => {
       if (get().busy) return
       if (!get().photoUrl) {
-        get().notify('Send a photo first.')
+        get().notify(i18n.t('needPhoto'))
         return
       }
       stopSpeaking()
@@ -203,7 +211,7 @@ export const useStore = create<Store>()(persist((set, get) => {
           const url = get().photoUrl
           if (url) URL.revokeObjectURL(url)
           set({ sessionId: null, photoUrl: null })
-          fail(new ApiError('The session expired. Please send the photo again.', 404))
+          fail(new ApiError(i18n.t('errSessionExpired'), 404))
           return
         }
         fail(err)

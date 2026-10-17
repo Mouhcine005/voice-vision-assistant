@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import type { Lang } from './api/types'
 import { startThinking, stopThinking } from './audioCue'
 import Conversation from './components/Conversation'
@@ -8,6 +9,7 @@ import Select from './components/Select'
 import type { Option } from './components/Select'
 import SettingsDialog from './components/SettingsDialog'
 import VoicePanel from './components/VoicePanel'
+import i18n, { applyDocumentLang } from './i18n'
 import { useStore } from './store'
 
 const LANGS: Option<Lang>[] = [
@@ -16,9 +18,14 @@ const LANGS: Option<Lang>[] = [
   { value: 'ar', label: '\u0627\u0644\u0639\u0631\u0628\u064a\u0629' },
 ]
 
+type Server =
+  | { kind: 'loading' }
+  | { kind: 'ready'; provider: string; model: string; configured: boolean }
+  | { kind: 'error'; error: string }
+
 function ServerStatus() {
-  const [text, setText] = useState('Connecting to the server...')
-  const [ok, setOk] = useState<boolean | null>(null)
+  const { t } = useTranslation()
+  const [server, setServer] = useState<Server>({ kind: 'loading' })
 
   useEffect(() => {
     const controller = new AbortController()
@@ -27,25 +34,34 @@ function ServerStatus() {
         if (!r.ok) throw new Error(`HTTP ${r.status}`)
         return r.json() as Promise<{ provider: string; model: string; provider_configured: boolean }>
       })
-      .then((h) => {
-        setOk(h.provider_configured)
-        setText(
-          h.provider_configured
-            ? `Server connected (${h.provider} / ${h.model}).`
-            : 'Server connected, but the vision provider is not configured.',
-        )
-      })
+      .then((h) =>
+        setServer({
+          kind: 'ready',
+          provider: h.provider,
+          model: h.model,
+          configured: h.provider_configured,
+        }),
+      )
       .catch((err: unknown) => {
         if (controller.signal.aborted) return
-        setOk(false)
-        setText(`Cannot reach the server (${err instanceof Error ? err.message : 'error'}). Is the backend running?`)
+        setServer({ kind: 'error', error: err instanceof Error ? err.message : 'error' })
       })
     return () => controller.abort()
   }, [])
 
+  if (server.kind === 'loading') return <p role="status" className="text-muted">{t('serverConnecting')}</p>
+  if (server.kind === 'error') {
+    return (
+      <p role="status" className="text-danger">
+        {t('serverUnreachable', { error: server.error })}
+      </p>
+    )
+  }
   return (
-    <p role="status" className={ok === false ? 'text-danger' : ok === true ? 'text-ok' : 'text-muted'}>
-      {text}
+    <p role="status" className={server.configured ? 'text-ok' : 'text-danger'}>
+      {server.configured
+        ? t('serverConnected', { provider: server.provider, model: server.model })
+        : t('serverNotConfigured')}
     </p>
   )
 }
@@ -61,28 +77,33 @@ function ThinkingSound() {
 }
 
 export default function App() {
+  const { t } = useTranslation()
   const lang = useStore((s) => s.lang)
   const setSettings = useStore((s) => s.setSettings)
   const [settingsOpen, setSettingsOpen] = useState(false)
+
+  useEffect(() => {
+    void i18n.changeLanguage(lang).then(() => applyDocumentLang(lang, i18n.t('appTitle')))
+  }, [lang])
 
   return (
     <div className="min-h-screen bg-bg text-fg">
       <ThinkingSound />
       <header className="border-b border-border px-6 py-4">
-        <h1 className="text-2xl font-bold">Voice Vision Assistant</h1>
+        <h1 className="text-2xl font-bold">{t('appTitle')}</h1>
         <ServerStatus />
       </header>
 
       <main className="mx-auto max-w-3xl space-y-6 px-6 py-8">
-        <section aria-label="Language and settings" className="flex flex-wrap items-end gap-4">
-          <Select id="lang" label="Language" value={lang} options={LANGS} onChange={(v) => setSettings({ lang: v })} />
+        <section aria-label={t('settingsRegion')} className="flex flex-wrap items-end gap-4">
+          <Select id="lang" label={t('language')} value={lang} options={LANGS} onChange={(v) => setSettings({ lang: v })} />
           <button
             type="button"
             aria-haspopup="dialog"
             onClick={() => setSettingsOpen(true)}
             className="rounded-xl border border-border bg-surface-2 px-4 py-2 text-lg hover:border-accent"
           >
-            Settings
+            {t('settings')}
           </button>
         </section>
 

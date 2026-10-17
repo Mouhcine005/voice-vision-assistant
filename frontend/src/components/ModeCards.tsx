@@ -1,21 +1,23 @@
+import { useTranslation } from 'react-i18next'
 import type { Mode } from '../api/types'
 import { useStore } from '../store'
 
 const MODES: { value: Mode; title: string; hint: string }[] = [
-  { value: 'describe', title: 'Describe', hint: 'What is in front of me' },
-  { value: 'read', title: 'Read text', hint: 'Read printed or handwritten text' },
-  { value: 'product', title: 'Product', hint: 'Identify a product or a medicine box' },
-  { value: 'currency', title: 'Currency (MAD)', hint: 'Recognize Moroccan banknotes and coins' },
-  { value: 'find', title: 'Find object', hint: 'Ask where an object is' },
+  { value: 'describe', title: 'modeDescribe', hint: 'modeDescribeHint' },
+  { value: 'read', title: 'modeRead', hint: 'modeReadHint' },
+  { value: 'product', title: 'modeProduct', hint: 'modeProductHint' },
+  { value: 'currency', title: 'modeCurrency', hint: 'modeCurrencyHint' },
+  { value: 'find', title: 'modeFind', hint: 'modeFindHint' },
 ]
 
 export default function ModeCards() {
+  const { t } = useTranslation()
   const mode = useStore((s) => s.mode)
   const setSettings = useStore((s) => s.setSettings)
 
   return (
     <fieldset className="rounded-2xl border border-border bg-surface p-6">
-      <legend className="px-2 text-lg font-semibold">What do you want to do?</legend>
+      <legend className="px-2 text-lg font-semibold">{t('modeTitle')}</legend>
       <div className="mt-2 grid gap-3 sm:grid-cols-2">
         {MODES.map((m) => (
           <label
@@ -30,8 +32,8 @@ export default function ModeCards() {
               onChange={() => setSettings({ mode: m.value })}
               className="sr-only"
             />
-            <span className="text-lg font-semibold">{m.title}</span>
-            <span className="text-muted">{m.hint}</span>
+            <span className="text-lg font-semibold">{t(m.title)}</span>
+            <span className="text-muted">{t(m.hint)}</span>
           </label>
         ))}
       </div>

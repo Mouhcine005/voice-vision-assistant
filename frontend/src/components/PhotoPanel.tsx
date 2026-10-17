@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { ChangeEvent, DragEvent } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useStore } from '../store'
 
 const button =
@@ -8,6 +9,7 @@ const button =
   'has-[:disabled]:cursor-not-allowed has-[:disabled]:opacity-50'
 
 export default function PhotoPanel() {
+  const { t } = useTranslation()
   const photoUrl = useStore((s) => s.photoUrl)
   const busy = useStore((s) => s.busy)
   const sendPhoto = useStore((s) => s.sendPhoto)
@@ -54,22 +56,22 @@ export default function PhotoPanel() {
       }`}
     >
       <h2 id="photo-heading" className="text-lg font-semibold">
-        Photo
+        {t('photo')}
       </h2>
 
       {photoUrl ? (
-        <img src={photoUrl} alt="The photo you sent" className="mt-4 max-h-80 rounded-xl" />
+        <img src={photoUrl} alt={t('photoAlt')} className="mt-4 max-h-80 rounded-xl" />
       ) : (
-        <p className="mt-3 text-muted">Drop an image here, paste one with Ctrl+V, or choose a file.</p>
+        <p className="mt-3 text-muted">{t('photoHint')}</p>
       )}
 
       <div className="mt-4 flex flex-wrap gap-3">
         <label className={button}>
-          Choose photo
+          {t('choosePhoto')}
           <input type="file" accept="image/*" className="sr-only" onChange={onPick} disabled={busy} />
         </label>
         <label className={button}>
-          Take photo
+          {t('takePhoto')}
           <input
             type="file"
             accept="image/*"
