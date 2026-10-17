@@ -9,8 +9,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
 from app.ask import build_ask_router
-from app.config import settings
+from app.config import BASE_DIR, settings
 from app.imaging import ImageError, prepare_image
+from app.metrics import MetricsStore
 from app.prompts import (
     LANGUAGE_NAMES,
     VALID_DETAILS,
@@ -33,7 +34,7 @@ log = logging.getLogger("uvicorn.error")
 app = FastAPI(
     title="Voice Vision Assistant API",
     description="Voice-first image description assistant for visually impaired users.",
-    version="0.8.0",
+    version="0.9.0",
 )
 
 app.add_middleware(
@@ -264,6 +265,7 @@ async def tts(req: TtsRequest) -> Response:
 
 session_store = SessionStore()
 gemini_limiter = RateLimiter(settings.gemini_rpm_limit)
+metrics_store = MetricsStore(BASE_DIR / "data" / "metrics.db")
 
 app.include_router(
     build_ask_router(
@@ -272,5 +274,18 @@ app.include_router(
         get_provider=lambda: get_provider(),
         store=session_store,
         limiter=gemini_limiter,
+        metrics=metrics_store,
     )
 )
+
+
+@app.get("/api/metrics/summary", tags=["system"])
+def metrics_summary(window: int = 200) -> dict:
+    """Latency percentiles per stage over the last `window` requests (feeds the Jury panel)."""
+    return metrics_store.summary(window)
+
+
+@app.get("/api/metrics/recent", tags=["system"])
+def metrics_recent(limit: int = 20) -> dict:
+    """The most recent requests with their per-stage timings, newest first."""
+    return {"items": metrics_store.recent(limit)}

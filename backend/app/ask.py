@@ -9,6 +9,7 @@ from fastapi import APIRouter, File, Form, HTTPException, UploadFile
 from fastapi.concurrency import run_in_threadpool
 
 from app.imaging import PreparedImage
+from app.metrics import MetricsStore
 from app.prompts import (
     LANGUAGE_NAMES,
     VALID_DETAILS,
@@ -43,6 +44,7 @@ def build_ask_router(
     get_provider: Callable[[], VLMProvider],
     store: SessionStore,
     limiter: RateLimiter,
+    metrics: MetricsStore | None = None,
 ) -> APIRouter:
     router = APIRouter(tags=["conversation"])
 
@@ -120,9 +122,28 @@ def build_ask_router(
         transcript: str | None = None
         quality_dict: dict | None = None
 
+        def record(status: int, body: dict | None = None) -> None:
+            if metrics is None:
+                return
+            body = body or {}
+            metrics.record(
+                endpoint="ask",
+                status=status,
+                mode=mode,
+                lang=lang,
+                detail=detail,
+                provider=body.get("provider"),
+                model=body.get("model"),
+                used_fallback=bool(body.get("used_fallback")),
+                attempts=int(body.get("attempts") or 0),
+                skipped_model=bool(body.get("skipped_model")),
+                stt_engine=(body.get("stt") or {}).get("engine"),
+                timings=t,
+            )
+
         def make(answer: str, skipped: bool, **fields) -> dict:
             t["total"] = round((time.perf_counter() - t_start) * 1000)
-            return {
+            body = {
                 "text": answer,
                 "skipped_model": skipped,
                 "no_speech": False,
@@ -142,6 +163,8 @@ def build_ask_router(
                 "timings_ms": t,
                 **fields,
             }
+            record(200, body)
+            return body
 
         # 1. A new photo? Check its quality before spending any API call.
         new_image: PreparedImage | None = None
@@ -206,6 +229,8 @@ def build_ask_router(
                 history=history,
             )
         except ProviderError as exc:
+            t["total"] = round((time.perf_counter() - t_start) * 1000)
+            record(502)
             raise HTTPException(502, str(exc)) from exc
         t["vlm"] = round(result.latency_ms)
 

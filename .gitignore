@@ -20,3 +20,5 @@ backend/benchmark/tts_out/
 project_snapshot.txt
 
 backend/benchmark/audio/
+
+backend/data/
