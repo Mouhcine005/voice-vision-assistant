@@ -39,6 +39,10 @@ export default function VoicePanel() {
     setPhase('idle')
     const result = await rec.stop()
     playCue('stop')
+    if (!result.heardSpeech) {
+      notify('I did not hear a question. Speak a little closer to the microphone and try again.')
+      return
+    }
     if (result.durationMs < MIN_RECORDING_MS) {
       notify('Recording was too short. Press the microphone button and ask your question.')
       return

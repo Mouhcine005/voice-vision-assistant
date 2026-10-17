@@ -6,7 +6,7 @@ const CALIBRATE_MS = 400
 const MIN_THRESHOLD = 0.02
 const MAX_THRESHOLD = 0.06
 
-export type RecordingResult = { blob: Blob; durationMs: number }
+export type RecordingResult = { blob: Blob; durationMs: number; heardSpeech: boolean }
 
 function pickMime(): string | undefined {
   if (typeof MediaRecorder === 'undefined') return undefined
@@ -80,6 +80,11 @@ export class VoiceRecorder {
     return Math.sqrt(sum / this.samples.length)
   }
 
+  /** True once real speech (not just background noise) was heard in this recording. */
+  get heardSpeech(): boolean {
+    return this.speechAt !== 0 && this.lastLoudAt - this.speechAt >= MIN_SPEECH_MS
+  }
+
   begin(): void {
     const mime = pickMime()
     this.recorder = new MediaRecorder(this.stream, mime ? { mimeType: mime } : undefined)
@@ -132,12 +137,13 @@ export class VoiceRecorder {
   stop(): Promise<RecordingResult> {
     this.stopTimer()
     const recorder = this.recorder
+    const heardSpeech = this.heardSpeech
     return new Promise((resolve) => {
       const done = () => {
         const blob = new Blob(this.chunks, { type: recorder?.mimeType || 'audio/webm' })
         const durationMs = this.startedAt === 0 ? 0 : performance.now() - this.startedAt
         this.close()
-        resolve({ blob, durationMs })
+        resolve({ blob, durationMs, heardSpeech })
       }
       if (!recorder || recorder.state === 'inactive') {
         done()
