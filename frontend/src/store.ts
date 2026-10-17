@@ -1,11 +1,19 @@
 import { create } from 'zustand'
+import { persist } from 'zustand/middleware'
 import { ApiError, ask, createSession, deleteSession } from './api/client'
 import type { AskResponse, Detail, Lang, Mode, Timings } from './api/types'
 import { speak, stopSpeaking } from './speech'
 
 export type Message = { id: number; role: 'user' | 'assistant'; text: string }
 
-type Settings = { lang: Lang; detail: Detail; mode: Mode; autoSpeak: boolean }
+type Settings = {
+  lang: Lang
+  detail: Detail
+  mode: Mode
+  autoSpeak: boolean
+  speed: number
+  soundCues: boolean
+}
 
 type Store = Settings & {
   sessionId: string | null
@@ -36,10 +44,22 @@ function describeError(err: unknown): string {
   return 'Could not reach the server. Is the backend running?'
 }
 
-export const useStore = create<Store>()((set, get) => {
+const persistOptions = {
+  name: 'vva-settings',
+  partialize: (s: Store) => ({
+    lang: s.lang,
+    detail: s.detail,
+    mode: s.mode,
+    autoSpeak: s.autoSpeak,
+    speed: s.speed,
+    soundCues: s.soundCues,
+  }),
+}
+
+export const useStore = create<Store>()(persist((set, get) => {
   const say = (text: string) => {
     if (!get().autoSpeak) return
-    void speak(text, get().lang).then((how) => {
+    void speak(text, get().lang, get().speed).then((how) => {
       if (how === 'unavailable' && get().error === null) {
         set({
           error:
@@ -85,6 +105,8 @@ export const useStore = create<Store>()((set, get) => {
     detail: 'brief',
     mode: 'describe',
     autoSpeak: true,
+    speed: 1,
+    soundCues: true,
     sessionId: null,
     photoUrl: null,
     messages: [],
@@ -201,4 +223,4 @@ export const useStore = create<Store>()((set, get) => {
       if (sessionId) await deleteSession(sessionId)
     },
   }
-})
+}, persistOptions))

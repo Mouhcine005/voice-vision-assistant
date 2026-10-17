@@ -29,19 +29,20 @@ function hasBrowserVoice(lang: Lang): boolean {
   return voices.length === 0 || voices.some((v) => v.lang.toLowerCase().startsWith(lang))
 }
 
-function speakWithBrowser(text: string, lang: Lang): 'browser' | 'unavailable' {
+function speakWithBrowser(text: string, lang: Lang, speed: number): 'browser' | 'unavailable' {
   if (!('speechSynthesis' in window) || !hasBrowserVoice(lang)) return 'unavailable'
   const utterance = new SpeechSynthesisUtterance(text)
   utterance.lang = BROWSER_LANG[lang]
+  utterance.rate = speed
   window.speechSynthesis.speak(utterance)
   return 'browser'
 }
 
-export async function speak(text: string, lang: Lang): Promise<SpeakResult> {
+export async function speak(text: string, lang: Lang, speed = 1): Promise<SpeakResult> {
   stopSpeaking()
   const mine = token
   try {
-    const blob = await fetchSpeech(text.slice(0, MAX_TTS_CHARS), lang)
+    const blob = await fetchSpeech(text.slice(0, MAX_TTS_CHARS), lang, speed)
     if (mine !== token) return 'stopped'
     const url = URL.createObjectURL(blob)
     const audio = new Audio(url)
@@ -54,6 +55,6 @@ export async function speak(text: string, lang: Lang): Promise<SpeakResult> {
   } catch {
     releaseAudio()
     if (mine !== token) return 'stopped'
-    return speakWithBrowser(text, lang)
+    return speakWithBrowser(text, lang, speed)
   }
 }
