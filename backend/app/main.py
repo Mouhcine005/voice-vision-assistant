@@ -8,6 +8,7 @@ from fastapi.concurrency import run_in_threadpool
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
+from app.ask import build_ask_router
 from app.config import settings
 from app.imaging import ImageError, prepare_image
 from app.prompts import (
@@ -19,6 +20,8 @@ from app.prompts import (
 )
 from app.providers import ProviderError, get_provider
 from app.quality import analyze_quality
+from app.ratelimit import RateLimiter
+from app.sessions import SessionStore
 from app.stt import SttError, SttResult, transcribe_audio
 from app.stt_gemini import transcribe_gemini
 from app.tts import TtsError, synthesize
@@ -30,7 +33,7 @@ log = logging.getLogger("uvicorn.error")
 app = FastAPI(
     title="Voice Vision Assistant API",
     description="Voice-first image description assistant for visually impaired users.",
-    version="0.7.0",
+    version="0.8.0",
 )
 
 app.add_middleware(
@@ -257,3 +260,17 @@ async def tts(req: TtsRequest) -> Response:
             "X-TTS-Ms": str(round(result.synth_ms)),
         },
     )
+
+
+session_store = SessionStore()
+gemini_limiter = RateLimiter(settings.gemini_rpm_limit)
+
+app.include_router(
+    build_ask_router(
+        read_and_prepare=_read_and_prepare,
+        transcribe=_transcribe,
+        get_provider=lambda: get_provider(),
+        store=session_store,
+        limiter=gemini_limiter,
+    )
+)

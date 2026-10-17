@@ -50,6 +50,7 @@ class Settings(BaseSettings):
     # Speech to text engine used first: gemini | whisper (whisper is always the fallback)
     stt_engine: str = "gemini"
     gemini_stt_model: str = "gemini-3.5-flash-lite"
+    gemini_rpm_limit: int = 12  # free tier allows 15 per minute: keep a margin
 
     # Text to speech
     tts_voice_en: str = "en-US-AriaNeural"
