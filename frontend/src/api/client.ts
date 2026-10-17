@@ -23,6 +23,12 @@ async function toApiError(res: Response): Promise<ApiError> {
   return new ApiError(message, res.status, retry ? Number(retry) : null)
 }
 
+function audioFileName(blob: Blob): string {
+  if (blob.type.includes('mp4')) return 'question.m4a'
+  if (blob.type.includes('ogg')) return 'question.ogg'
+  return 'question.webm'
+}
+
 export async function createSession(): Promise<{ session_id: string }> {
   const res = await fetch('/api/session', { method: 'POST' })
   if (!res.ok) throw await toApiError(res)
@@ -54,7 +60,7 @@ export async function ask(p: AskParams): Promise<AskResponse> {
   if (p.force) form.set('force', 'true')
   if (p.text) form.set('text', p.text)
   if (p.image) form.set('image', p.image, p.image.name || 'photo.jpg')
-  if (p.audio) form.set('audio', p.audio, 'question.webm')
+  if (p.audio) form.set('audio', p.audio, audioFileName(p.audio))
   const res = await fetch('/api/ask', { method: 'POST', body: form, signal: p.signal })
   if (!res.ok) throw await toApiError(res)
   return (await res.json()) as AskResponse

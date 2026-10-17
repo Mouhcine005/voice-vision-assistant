@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import type { Detail, Lang, Mode } from './api/types'
 import Conversation from './components/Conversation'
 import PhotoPanel from './components/PhotoPanel'
+import VoicePanel from './components/VoicePanel'
 import { useStore } from './store'
 
 type Option<T extends string> = { value: T; label: string }
@@ -112,6 +113,7 @@ export default function App() {
         </section>
 
         <PhotoPanel />
+        <VoicePanel />
         <Conversation />
       </main>
     </div>

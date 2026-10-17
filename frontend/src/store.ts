@@ -17,6 +17,8 @@ type Store = Settings & {
   setSettings: (patch: Partial<Settings>) => void
   sendPhoto: (file: File) => Promise<void>
   sendText: (text: string) => Promise<void>
+  sendAudio: (audio: Blob) => Promise<void>
+  notify: (message: string) => void
   reset: () => Promise<void>
 }
 
@@ -36,7 +38,15 @@ function describeError(err: unknown): string {
 
 export const useStore = create<Store>()((set, get) => {
   const say = (text: string) => {
-    if (get().autoSpeak) void speak(text, get().lang)
+    if (!get().autoSpeak) return
+    void speak(text, get().lang).then((how) => {
+      if (how === 'unavailable' && get().error === null) {
+        set({
+          error:
+            'No voice is available for this language on this device. Please read the answer on screen.',
+        })
+      }
+    })
   }
 
   const ensureSession = async (): Promise<string> => {
@@ -48,7 +58,7 @@ export const useStore = create<Store>()((set, get) => {
   }
 
   const callAsk = async (
-    extra: { text?: string; image?: File },
+    extra: { text?: string; image?: File; audio?: Blob },
     canRetry: boolean,
   ): Promise<AskResponse> => {
     const { lang, detail, mode } = get()
@@ -144,6 +154,43 @@ export const useStore = create<Store>()((set, get) => {
         }
         fail(err)
       }
+    },
+
+    sendAudio: async (audio) => {
+      if (get().busy) return
+      if (!get().photoUrl) {
+        get().notify('Send a photo first.')
+        return
+      }
+      stopSpeaking()
+      set({ busy: true, error: null })
+      try {
+        const res = await callAsk({ audio }, false)
+        set((s) => ({
+          messages: [
+            ...s.messages,
+            ...(res.transcript ? [msg('user', res.transcript)] : []),
+            msg('assistant', res.text),
+          ],
+          lastTimings: res.timings_ms,
+          busy: false,
+        }))
+        say(res.text)
+      } catch (err) {
+        if (err instanceof ApiError && err.status === 404) {
+          const url = get().photoUrl
+          if (url) URL.revokeObjectURL(url)
+          set({ sessionId: null, photoUrl: null })
+          fail(new ApiError('The session expired. Please send the photo again.', 404))
+          return
+        }
+        fail(err)
+      }
+    },
+
+    notify: (message) => {
+      set({ error: message })
+      say(message)
     },
 
     reset: async () => {
