@@ -47,6 +47,10 @@ class Settings(BaseSettings):
     whisper_beam_size: int = 1
     whisper_cpu_threads: int = 0  # 0 = library default
 
+    # Speech to text engine used first: gemini | whisper (whisper is always the fallback)
+    stt_engine: str = "gemini"
+    gemini_stt_model: str = "gemini-3.5-flash-lite"
+
     # Text to speech
     tts_voice_en: str = "en-US-AriaNeural"
     tts_voice_fr: str = "fr-FR-DeniseNeural"

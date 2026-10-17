@@ -28,6 +28,7 @@ class SttResult:
     duration_s: float
     transcribe_ms: float
     model_loaded_now: bool
+    engine: str = "whisper"
 
 
 def get_model():

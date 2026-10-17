@@ -1,3 +1,4 @@
+import logging
 import time
 from pathlib import Path
 from typing import Literal
@@ -18,15 +19,18 @@ from app.prompts import (
 )
 from app.providers import ProviderError, get_provider
 from app.quality import analyze_quality
-from app.stt import SttError, transcribe_audio
+from app.stt import SttError, SttResult, transcribe_audio
+from app.stt_gemini import transcribe_gemini
 from app.tts import TtsError, synthesize
 
 MAX_AUDIO_MB = 25
 
+log = logging.getLogger("uvicorn.error")
+
 app = FastAPI(
     title="Voice Vision Assistant API",
     description="Voice-first image description assistant for visually impaired users.",
-    version="0.6.0",
+    version="0.7.0",
 )
 
 app.add_middleware(
@@ -185,6 +189,16 @@ async def describe(
     }
 
 
+async def _transcribe(raw: bytes, suffix: str, lang: str | None) -> SttResult:
+    """Gemini first (fast and accurate on real voices); Whisper as the fallback."""
+    if settings.stt_engine == "gemini":
+        try:
+            return await transcribe_gemini(raw, suffix)
+        except SttError as exc:
+            log.warning("Gemini STT failed (%s). Falling back to Whisper.", exc)
+    return await run_in_threadpool(transcribe_audio, raw, suffix, lang)
+
+
 @app.post("/api/stt", tags=["speech"])
 async def stt(
     audio: UploadFile = File(...),
@@ -203,12 +217,13 @@ async def stt(
 
     suffix = Path(audio.filename or "").suffix or ".webm"
     try:
-        result = await run_in_threadpool(transcribe_audio, raw, suffix, lang or None)
+        result = await _transcribe(raw, suffix, lang or None)
     except SttError as exc:
         raise HTTPException(400, str(exc)) from exc
 
     return {
         "text": result.text,
+        "engine": result.engine,
         "no_speech": not result.text,
         "language": result.language,
         "language_probability": result.language_probability,
