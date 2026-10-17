@@ -1,0 +1,28 @@
+@import "tailwindcss";
+
+@theme static {
+  --color-bg: #000000;
+  --color-surface: #11151a;
+  --color-surface-2: #1b2027;
+  --color-border: #3a424d;
+  --color-fg: #ffffff;
+  --color-muted: #c4ccd6;
+  --color-accent: #ffd60a;
+  --color-accent-fg: #000000;
+  --color-danger: #ff7b7b;
+  --color-ok: #5df08a;
+}
+
+@layer base {
+  html {
+    color-scheme: dark;
+  }
+  body {
+    @apply bg-bg text-fg antialiased;
+    margin: 0;
+  }
+  :focus-visible {
+    outline: 3px solid var(--color-accent);
+    outline-offset: 3px;
+  }
+}
