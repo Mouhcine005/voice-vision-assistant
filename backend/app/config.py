@@ -24,7 +24,7 @@ class Settings(BaseSettings):
     vlm_provider: str = "gemini"
 
     # Gemini
-    gemini_api_key: str = "AQ.Ab8RN6KaYjamrn9tcsFtWP8oIgrfEBw6WPTjxgOxiJpsBbK0eg"
+    gemini_api_key: str = ""
     gemini_model: str = "gemini-3.5-flash-lite"
     gemini_fallback_model: str = ""
 

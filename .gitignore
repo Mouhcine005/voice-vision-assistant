@@ -16,3 +16,5 @@ dist/
 
 # Generated audio
 backend/benchmark/tts_out/
+
+project_snapshot.txt

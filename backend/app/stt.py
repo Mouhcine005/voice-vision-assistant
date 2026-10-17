@@ -11,7 +11,6 @@ log = logging.getLogger("uvicorn.error")
 
 ALLOWED_LANGUAGES = ("ar", "fr", "en")
 DEVICE = "cpu"
-BEAM_SIZE = 3  # 1 = fastest, 5 = most accurate. We will tune this with measurements.
 
 _model = None
 _model_lock = threading.Lock()
@@ -50,6 +49,7 @@ def get_model():
                     settings.whisper_model_size,
                     device=DEVICE,
                     compute_type=settings.whisper_compute_type,
+                    cpu_threads=settings.whisper_cpu_threads,
                 )
                 log.info("Whisper model loaded in %.1f s", time.perf_counter() - started)
     return _model
@@ -59,7 +59,7 @@ def _run(model, path: str, language: str | None):
     segments, info = model.transcribe(
         path,
         language=language,
-        beam_size=BEAM_SIZE,
+        beam_size=settings.whisper_beam_size,
         vad_filter=True,
         vad_parameters={"min_silence_duration_ms": 500},
         condition_on_previous_text=False,
