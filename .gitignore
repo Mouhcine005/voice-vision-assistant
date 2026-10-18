@@ -24,3 +24,5 @@ backend/benchmark/audio/
 backend/data/
 
 backend/benchmark/raw/
+
+backend/benchmark/cache/
