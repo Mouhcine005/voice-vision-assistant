@@ -228,6 +228,8 @@ async def stt(
     return {
         "text": result.text,
         "engine": result.engine,
+        "convert_ms": round(result.convert_ms),
+        "api_ms": round(result.api_ms),
         "no_speech": not result.text,
         "language": result.language,
         "language_probability": result.language_probability,
