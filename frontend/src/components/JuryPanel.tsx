@@ -6,6 +6,7 @@ import LatencyChart from './LatencyChart'
 import type { Row } from './LatencyChart'
 
 type Stage = { n: number; p50: number | null; p95: number | null }
+type Group = { n: number; p50: number | null; p95: number | null; within_target_pct: number | null }
 type Summary = {
   requests: number
   errors: number
@@ -14,6 +15,7 @@ type Summary = {
   target_ms: number
   within_target_pct: number | null
   stages: Record<'preprocess' | 'rate_wait' | 'stt' | 'vlm' | 'total', Stage>
+  by_input: Record<'voice' | 'text', Group>
 }
 
 const STAGES: { key: keyof Summary['stages']; label: string }[] = [
@@ -142,6 +144,51 @@ export default function JuryPanel() {
             })}
           </tbody>
         </table>
+      )}
+
+      {summary && (summary.by_input.voice.n > 0 || summary.by_input.text.n > 0) && (
+        <>
+          <h3 className="mt-6 text-lg font-semibold">{t('juryByInput')}</h3>
+          <table className="mt-2 w-full">
+            <caption className="sr-only">{t('juryByInput')}</caption>
+            <thead>
+              <tr className="text-muted">
+                <th scope="col" className="py-1 text-start font-normal">
+                  {t('juryColInput')}
+                </th>
+                <th scope="col" className="text-end font-normal">
+                  {t('colMedian')}
+                </th>
+                <th scope="col" className="text-end font-normal">
+                  {t('colP95')}
+                </th>
+                <th scope="col" className="text-end font-normal">
+                  {t('juryWithin')}
+                </th>
+                <th scope="col" className="text-end font-normal">
+                  {t('colSamples')}
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {(['text', 'voice'] as const).map((kind) => {
+                const g = summary.by_input[kind]
+                return (
+                  <tr key={kind} className="border-t border-border">
+                    <th scope="row" className="py-1 text-start font-normal">
+                      {t(kind === 'text' ? 'juryInputText' : 'juryInputVoice')}
+                    </th>
+                    <td className="text-end">{secs(g.p50)} s</td>
+                    <td className="text-end">{secs(g.p95)} s</td>
+                    <td className="text-end">{g.within_target_pct === null ? '-' : `${g.within_target_pct}%`}</td>
+                    <td className="text-end">{g.n}</td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+          <p className="mt-2 text-sm text-muted">{t('juryByInputNote')}</p>
+        </>
       )}
 
       <h3 className="mt-6 text-lg font-semibold">{t('juryChartTitle')}</h3>
