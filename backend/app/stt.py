@@ -29,6 +29,8 @@ class SttResult:
     transcribe_ms: float
     model_loaded_now: bool
     engine: str = "whisper"
+    convert_ms: float = 0.0
+    api_ms: float = 0.0
 
 
 def get_model():

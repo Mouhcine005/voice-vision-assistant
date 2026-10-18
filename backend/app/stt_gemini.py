@@ -68,6 +68,7 @@ async def transcribe_gemini(raw: bytes, suffix: str = ".webm") -> SttResult:
 
     started = time.perf_counter()
     wav = await asyncio.to_thread(_to_wav, raw, _safe_suffix(suffix))
+    convert_ms = (time.perf_counter() - started) * 1000
     duration_s = max(0.0, (len(wav) - 44) / 32000)  # 16 kHz, 16-bit, mono PCM
 
     model = settings.gemini_stt_model
@@ -84,6 +85,7 @@ async def transcribe_gemini(raw: bytes, suffix: str = ".webm") -> SttResult:
         "generationConfig": {"temperature": 0},
     }
     url = f"{BASE_URL}/models/{model}:generateContent"
+    api_started = time.perf_counter()
     last_error = "unknown"
 
     async with httpx.AsyncClient(timeout=settings.vlm_timeout_seconds) as client:
@@ -97,7 +99,15 @@ async def transcribe_gemini(raw: bytes, suffix: str = ".webm") -> SttResult:
             else:
                 if resp.status_code == 200:
                     try:
-                        text = extract_text(resp.json())
+                        data = resp.json()
+                        text = extract_text(data)
+                        thoughts = (data.get("usageMetadata") or {}).get("thoughtsTokenCount", 0)
+                        log.info(
+                            "Gemini STT: convert=%.0f ms, api=%.0f ms, thought tokens=%s",
+                            convert_ms,
+                            (time.perf_counter() - api_started) * 1000,
+                            thoughts,
+                        )
                     except ValueError as exc:
                         raise SttError("Gemini returned invalid JSON.") from exc
                     return SttResult(
@@ -108,6 +118,8 @@ async def transcribe_gemini(raw: bytes, suffix: str = ".webm") -> SttResult:
                         transcribe_ms=(time.perf_counter() - started) * 1000,
                         model_loaded_now=False,
                         engine="gemini",
+                        convert_ms=convert_ms,
+                        api_ms=(time.perf_counter() - api_started) * 1000,
                     )
                 last_error = f"HTTP {resp.status_code}"
                 if resp.status_code not in RETRYABLE_STATUS:

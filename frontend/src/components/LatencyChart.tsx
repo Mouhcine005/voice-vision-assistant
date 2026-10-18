@@ -10,6 +10,7 @@ export type Row = {
   ms_stt: number | null
   ms_vlm: number | null
   ms_total: number | null
+  audio_s: number | null
 }
 
 export const STAGE_COLORS = {

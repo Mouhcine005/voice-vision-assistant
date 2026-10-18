@@ -138,6 +138,9 @@ def build_ask_router(
                 attempts=int(body.get("attempts") or 0),
                 skipped_model=bool(body.get("skipped_model")),
                 stt_engine=(body.get("stt") or {}).get("engine"),
+                audio_seconds=(body.get("stt") or {}).get("audio_seconds"),
+                convert_ms=(body.get("stt") or {}).get("convert_ms"),
+                api_ms=(body.get("stt") or {}).get("api_ms"),
                 timings=t,
             )
 
@@ -212,7 +215,12 @@ def build_ask_router(
                 raise HTTPException(400, str(exc)) from exc
             t["stt"] = round((time.perf_counter() - t1) * 1000)
             transcript = heard.text
-            stt_info = {"engine": heard.engine, "audio_seconds": heard.duration_s}
+            stt_info = {
+                "engine": heard.engine,
+                "audio_seconds": heard.duration_s,
+                "convert_ms": round(heard.convert_ms),
+                "api_ms": round(heard.api_ms),
+            }
             if not transcript:
                 return make(NO_SPEECH[lang], True, no_speech=True, stt=stt_info, image=image_info)
             question = transcript

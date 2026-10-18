@@ -187,7 +187,10 @@ export default function JuryPanel() {
                   <td className="text-end">{row.status}</td>
                   <td className="text-end">{secs(row.ms_preprocess)}</td>
                   <td className="text-end">{secs(row.ms_rate_wait)}</td>
-                  <td className="text-end">{secs(row.ms_stt)}</td>
+                  <td className="text-end">
+                    {secs(row.ms_stt)}
+                    {row.audio_s ? <span className="text-muted"> ({row.audio_s.toFixed(1)} s)</span> : null}
+                  </td>
                   <td className="text-end">{secs(row.ms_vlm)}</td>
                   <td className="text-end">{secs(row.ms_total)}</td>
                 </tr>

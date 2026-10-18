@@ -31,7 +31,10 @@ CREATE TABLE IF NOT EXISTS requests (
     ms_rate_wait INTEGER,
     ms_stt INTEGER,
     ms_vlm INTEGER,
-    ms_total INTEGER
+    ms_total INTEGER,
+    audio_s REAL,
+    ms_convert INTEGER,
+    ms_api INTEGER
 )
 """
 
@@ -49,6 +52,19 @@ def _ms(value) -> int | None:
     return None if value is None else int(round(value))
 
 
+def _group(rows: list[dict]) -> dict:
+    totals = [r["ms_total"] for r in rows if r["ms_total"] is not None]
+    within = (
+        round(100 * sum(1 for v in totals if v <= TARGET_MS) / len(totals), 1) if totals else None
+    )
+    return {
+        "n": len(totals),
+        "p50": _percentile(totals, 50),
+        "p95": _percentile(totals, 95),
+        "within_target_pct": within,
+    }
+
+
 class MetricsStore:
     def __init__(self, path: str | Path = ":memory:") -> None:
         if str(path) != ":memory:":
@@ -58,6 +74,10 @@ class MetricsStore:
         self._lock = threading.Lock()
         with self._lock:
             self._conn.execute(SCHEMA)
+            existing = {r["name"] for r in self._conn.execute("PRAGMA table_info(requests)")}
+            for name, kind in (("audio_s", "REAL"), ("ms_convert", "INTEGER"), ("ms_api", "INTEGER")):
+                if name not in existing:
+                    self._conn.execute(f"ALTER TABLE requests ADD COLUMN {name} {kind}")
             self._conn.commit()
 
     def record(
@@ -75,6 +95,9 @@ class MetricsStore:
         skipped_model: bool = False,
         stt_engine: str | None = None,
         timings: dict | None = None,
+        audio_seconds: float | None = None,
+        convert_ms: float | None = None,
+        api_ms: float | None = None,
     ) -> None:
         """Store one request. Never raises: metrics must not break a real request."""
         timings = timings or {}
@@ -96,13 +119,17 @@ class MetricsStore:
             _ms(timings.get("stt")),
             _ms(timings.get("vlm")),
             _ms(timings.get("total")),
+            audio_seconds,
+            _ms(convert_ms),
+            _ms(api_ms),
         )
         try:
             with self._lock:
                 self._conn.execute(
                     "INSERT INTO requests (ts, endpoint, status, mode, lang, detail, provider, model, "
                     "used_fallback, attempts, skipped_model, stt_engine, ms_preprocess, ms_rate_wait, "
-                    "ms_stt, ms_vlm, ms_total) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                    "ms_stt, ms_vlm, ms_total, audio_s, ms_convert, ms_api) VALUES "
+                    "(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
                     row,
                 )
                 self._conn.commit()
@@ -135,6 +162,10 @@ class MetricsStore:
                 "p95": _percentile(values, 95),
             }
 
+        voice = [r for r in ok if (r["ms_stt"] or 0) > 0]
+        text = [r for r in ok if (r["ms_stt"] or 0) == 0]
+        by_input = {"voice": _group(voice), "text": _group(text)}
+
         totals = [r["ms_total"] for r in ok if r["ms_total"] is not None]
         within = (
             round(100 * sum(1 for v in totals if v <= TARGET_MS) / len(totals), 1) if totals else None
@@ -148,4 +179,5 @@ class MetricsStore:
             "target_ms": TARGET_MS,
             "within_target_pct": within,
             "stages": stages,
+            "by_input": by_input,
         }
