@@ -22,3 +22,5 @@ project_snapshot.txt
 backend/benchmark/audio/
 
 backend/data/
+
+backend/benchmark/raw/
