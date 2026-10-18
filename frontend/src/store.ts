@@ -25,6 +25,9 @@ type Store = Settings & {
   lastTimings: Timings | null
   announcement: string
   announcementId: number
+  lastAskMs: number | null
+  lastTtsMs: number | null
+  lastVoice: boolean
   setSettings: (patch: Partial<Settings>) => void
   sendPhoto: (file: File) => Promise<void>
   sendText: (text: string) => Promise<void>
@@ -69,9 +72,13 @@ const persistOptions = {
 }
 
 export const useStore = create<Store>()(persist((set, get) => {
-  const say = (text: string, force = false) => {
+  const say = (text: string, force = false, measure = false) => {
     if (!force && !get().autoSpeak) return
+    const started = performance.now()
     void speak(text, get().lang, get().speed).then((how) => {
+      if (measure && (how === 'server' || how === 'browser')) {
+        set({ lastTtsMs: Math.round(performance.now() - started) })
+      }
       if (how === 'unavailable' && get().error === null) {
         set({
           error:
@@ -96,7 +103,14 @@ export const useStore = create<Store>()(persist((set, get) => {
     const { lang, detail, mode } = get()
     try {
       const sessionId = await ensureSession()
-      return await ask({ sessionId, lang, detail, mode, ...extra })
+      const started = performance.now()
+      const res = await ask({ sessionId, lang, detail, mode, ...extra })
+      set({
+        lastAskMs: Math.round(performance.now() - started),
+        lastTtsMs: null,
+        lastVoice: extra.audio !== undefined,
+      })
+      return res
     } catch (err) {
       if (canRetry && err instanceof ApiError && err.status === 404) {
         set({ sessionId: null })
@@ -127,6 +141,9 @@ export const useStore = create<Store>()(persist((set, get) => {
     lastTimings: null,
     announcement: '',
     announcementId: 0,
+    lastAskMs: null,
+    lastTtsMs: null,
+    lastVoice: false,
 
     setSettings: (patch) => set(patch),
 
@@ -153,7 +170,7 @@ export const useStore = create<Store>()(persist((set, get) => {
             busy: false,
           }))
         }
-        say(res.text)
+        say(res.text, false, true)
       } catch (err) {
         URL.revokeObjectURL(url)
         set({ photoUrl: previousUrl })
@@ -179,7 +196,7 @@ export const useStore = create<Store>()(persist((set, get) => {
           lastTimings: res.timings_ms,
           busy: false,
         }))
-        say(res.text)
+        say(res.text, false, true)
       } catch (err) {
         if (err instanceof ApiError && err.status === 404) {
           const url = get().photoUrl
@@ -211,7 +228,7 @@ export const useStore = create<Store>()(persist((set, get) => {
           lastTimings: res.timings_ms,
           busy: false,
         }))
-        say(res.text)
+        say(res.text, false, true)
       } catch (err) {
         if (err instanceof ApiError && err.status === 404) {
           const url = get().photoUrl

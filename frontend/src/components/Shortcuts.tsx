@@ -38,7 +38,7 @@ function clickById(id: string): void {
 }
 
 /** Global single-key shortcuts. Space and Escape are handled by the voice panel. */
-export default function Shortcuts({ onHelp }: { onHelp: () => void }) {
+export default function Shortcuts({ onHelp, onJury }: { onHelp: () => void; onJury: () => void }) {
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
       if (event.ctrlKey || event.altKey || event.metaKey || event.repeat) return
@@ -86,6 +86,10 @@ export default function Shortcuts({ onHelp }: { onHelp: () => void }) {
           useStore.getState().announce(LANG_NAMES[next])
           break
         }
+        case 'KeyJ':
+          event.preventDefault()
+          onJury()
+          break
         case 'KeyH':
           event.preventDefault()
           onHelp()
@@ -94,7 +98,7 @@ export default function Shortcuts({ onHelp }: { onHelp: () => void }) {
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [onHelp])
+  }, [onHelp, onJury])
 
   return null
 }

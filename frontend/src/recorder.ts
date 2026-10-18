@@ -1,4 +1,4 @@
-const SILENCE_MS = 1400 // quiet time after speech that ends the recording
+export const SILENCE_MS = 1400 // quiet time after speech that ends the recording
 const MIN_SPEECH_MS = 300 // speech shorter than this does not count
 const NO_SPEECH_MS = 7000 // give up if nothing is said at all
 const MAX_MS = 20000

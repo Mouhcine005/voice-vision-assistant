@@ -14,6 +14,7 @@ const ROWS: { keys: string; translateKey?: boolean; label: string }[] = [
   { keys: 'L', label: 'shortcutLanguage' },
   { keys: 'N', label: 'shortcutNew' },
   { keys: 'H', label: 'shortcutHelp' },
+  { keys: 'J', label: 'shortcutJury' },
 ]
 
 export default function HelpDialog({ open, onClose }: { open: boolean; onClose: () => void }) {

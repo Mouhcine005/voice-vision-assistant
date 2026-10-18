@@ -5,6 +5,7 @@ import { startThinking, stopThinking } from './audioCue'
 import Announcer from './components/Announcer'
 import Conversation from './components/Conversation'
 import HelpDialog from './components/HelpDialog'
+import JuryPanel from './components/JuryPanel'
 import ModeCards from './components/ModeCards'
 import PhotoPanel from './components/PhotoPanel'
 import Select from './components/Select'
@@ -86,6 +87,7 @@ export default function App() {
   const setSettings = useStore((s) => s.setSettings)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [helpOpen, setHelpOpen] = useState(() => !hasSeenHelp())
+  const [juryOpen, setJuryOpen] = useState(false)
 
   useEffect(() => {
     void i18n.changeLanguage(lang).then(() => applyDocumentLang(lang, i18n.t('appTitle')))
@@ -100,7 +102,7 @@ export default function App() {
         {t('skipToMain')}
       </a>
       <Announcer />
-      <Shortcuts onHelp={() => setHelpOpen(true)} />
+      <Shortcuts onHelp={() => setHelpOpen(true)} onJury={() => setJuryOpen((open) => !open)} />
       <ThinkingSound />
       <header className="border-b border-border px-6 py-4">
         <h1 className="text-2xl font-bold">{t('appTitle')}</h1>
@@ -126,12 +128,22 @@ export default function App() {
           >
             {t('helpButton')}
           </button>
+          <button
+            type="button"
+            aria-expanded={juryOpen}
+            aria-controls="jury"
+            onClick={() => setJuryOpen((open) => !open)}
+            className="rounded-xl border border-border bg-surface-2 px-4 py-2 text-lg hover:border-accent"
+          >
+            {t('juryButton')}
+          </button>
         </section>
 
         <ModeCards />
         <PhotoPanel />
         <VoicePanel />
         <Conversation />
+        {juryOpen && <JuryPanel />}
       </main>
 
       <SettingsDialog open={settingsOpen} onClose={() => setSettingsOpen(false)} />
