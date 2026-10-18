@@ -205,6 +205,7 @@ async def run(args: argparse.Namespace) -> None:
                         "latency_ms": round(result.latency_ms),
                         "attempts": result.attempts,
                     }
+                    CACHE.mkdir(parents=True, exist_ok=True)
                     file.write_text(json.dumps(rec, ensure_ascii=False), encoding="utf-8")
                     cached_flag = False
                 res = make_result(

@@ -26,3 +26,5 @@ backend/data/
 backend/benchmark/raw/
 
 backend/benchmark/cache/
+
+backend/benchmark/images/*.jpg
