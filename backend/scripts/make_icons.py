@@ -3,7 +3,7 @@ from pathlib import Path
 
 from PIL import Image, ImageDraw
 
-BG = (10, 10, 10, 255)
+BG = (0, 0, 0, 255)
 ACCENT = (255, 214, 10, 255)
 SIZE = 1024
 OUT = Path(__file__).resolve().parents[2] / "frontend" / "public"
