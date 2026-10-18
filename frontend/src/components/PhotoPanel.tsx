@@ -68,7 +68,7 @@ export default function PhotoPanel() {
       <div className="mt-4 flex flex-wrap gap-3">
         <label className={button}>
           {t('choosePhoto')}
-          <input type="file" accept="image/*" className="sr-only" onChange={onPick} disabled={busy} />
+          <input id="photo-file" type="file" accept="image/*" className="sr-only" onChange={onPick} disabled={busy} />
         </label>
         <label className={button}>
           {t('takePhoto')}
@@ -76,6 +76,7 @@ export default function PhotoPanel() {
             type="file"
             accept="image/*"
             capture="environment"
+            id="camera-file"
             className="sr-only"
             onChange={onPick}
             disabled={busy}

@@ -2,13 +2,17 @@ import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { Lang } from './api/types'
 import { startThinking, stopThinking } from './audioCue'
+import Announcer from './components/Announcer'
 import Conversation from './components/Conversation'
+import HelpDialog from './components/HelpDialog'
 import ModeCards from './components/ModeCards'
 import PhotoPanel from './components/PhotoPanel'
 import Select from './components/Select'
 import type { Option } from './components/Select'
 import SettingsDialog from './components/SettingsDialog'
+import Shortcuts from './components/Shortcuts'
 import VoicePanel from './components/VoicePanel'
+import { hasSeenHelp, markHelpSeen } from './help'
 import i18n, { applyDocumentLang } from './i18n'
 import { useStore } from './store'
 
@@ -81,6 +85,7 @@ export default function App() {
   const lang = useStore((s) => s.lang)
   const setSettings = useStore((s) => s.setSettings)
   const [settingsOpen, setSettingsOpen] = useState(false)
+  const [helpOpen, setHelpOpen] = useState(() => !hasSeenHelp())
 
   useEffect(() => {
     void i18n.changeLanguage(lang).then(() => applyDocumentLang(lang, i18n.t('appTitle')))
@@ -88,13 +93,21 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-bg text-fg">
+      <a
+        href="#main"
+        className="sr-only focus:not-sr-only focus:absolute focus:start-2 focus:top-2 focus:z-50 focus:rounded-xl focus:bg-accent focus:px-4 focus:py-2 focus:text-accent-fg"
+      >
+        {t('skipToMain')}
+      </a>
+      <Announcer />
+      <Shortcuts onHelp={() => setHelpOpen(true)} />
       <ThinkingSound />
       <header className="border-b border-border px-6 py-4">
         <h1 className="text-2xl font-bold">{t('appTitle')}</h1>
         <ServerStatus />
       </header>
 
-      <main className="mx-auto max-w-3xl space-y-6 px-6 py-8">
+      <main id="main" tabIndex={-1} className="mx-auto max-w-3xl space-y-6 px-6 py-8">
         <section aria-label={t('settingsRegion')} className="flex flex-wrap items-end gap-4">
           <Select id="lang" label={t('language')} value={lang} options={LANGS} onChange={(v) => setSettings({ lang: v })} />
           <button
@@ -105,6 +118,14 @@ export default function App() {
           >
             {t('settings')}
           </button>
+          <button
+            type="button"
+            aria-haspopup="dialog"
+            onClick={() => setHelpOpen(true)}
+            className="rounded-xl border border-border bg-surface-2 px-4 py-2 text-lg hover:border-accent"
+          >
+            {t('helpButton')}
+          </button>
         </section>
 
         <ModeCards />
@@ -114,6 +135,13 @@ export default function App() {
       </main>
 
       <SettingsDialog open={settingsOpen} onClose={() => setSettingsOpen(false)} />
+      <HelpDialog
+        open={helpOpen}
+        onClose={() => {
+          markHelpSeen()
+          setHelpOpen(false)
+        }}
+      />
     </div>
   )
 }

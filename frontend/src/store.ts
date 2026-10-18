@@ -23,11 +23,15 @@ type Store = Settings & {
   busy: boolean
   error: string | null
   lastTimings: Timings | null
+  announcement: string
+  announcementId: number
   setSettings: (patch: Partial<Settings>) => void
   sendPhoto: (file: File) => Promise<void>
   sendText: (text: string) => Promise<void>
   sendAudio: (audio: Blob) => Promise<void>
   notify: (message: string) => void
+  announce: (message: string) => void
+  repeatLast: () => void
   reset: () => Promise<void>
 }
 
@@ -65,8 +69,8 @@ const persistOptions = {
 }
 
 export const useStore = create<Store>()(persist((set, get) => {
-  const say = (text: string) => {
-    if (!get().autoSpeak) return
+  const say = (text: string, force = false) => {
+    if (!force && !get().autoSpeak) return
     void speak(text, get().lang, get().speed).then((how) => {
       if (how === 'unavailable' && get().error === null) {
         set({
@@ -121,6 +125,8 @@ export const useStore = create<Store>()(persist((set, get) => {
     busy: false,
     error: null,
     lastTimings: null,
+    announcement: '',
+    announcementId: 0,
 
     setSettings: (patch) => set(patch),
 
@@ -221,6 +227,21 @@ export const useStore = create<Store>()(persist((set, get) => {
     notify: (message) => {
       set({ error: message })
       say(message)
+    },
+
+    announce: (message) => {
+      set((s) => ({ announcement: message, announcementId: s.announcementId + 1 }))
+      say(message)
+    },
+
+    repeatLast: () => {
+      const last = [...get().messages].reverse().find((m) => m.role === 'assistant')
+      if (!last) {
+        get().announce(i18n.t('nothingToRepeat'))
+        return
+      }
+      stopSpeaking()
+      say(last.text, true)
     },
 
     reset: async () => {
