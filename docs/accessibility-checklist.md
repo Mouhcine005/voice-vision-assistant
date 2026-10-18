@@ -7,7 +7,7 @@ Result column: pass, fail or n/a. Put what you saw in Notes, especially for fail
 
 | # | Check | How | Result | Notes |
 |---|---|---|---|---|
-| 1 | Lighthouse accessibility score | Chrome DevTools, Lighthouse tab, Accessibility only, run for Desktop and Mobile | todo | |
+| 1 | Lighthouse accessibility score | Chrome DevTools, Lighthouse tab, Accessibility only, run for Desktop and Mobile | pass | 100/100 on Desktop and Mobile (Lighthouse, 2026-10-18, production preview) |
 | 2 | Keyboard only: every control reachable | Put the mouse away. Tab and Shift+Tab through the whole page | todo | |
 | 3 | Visible focus on every control | Look for the yellow outline while tabbing | todo | |
 | 4 | Skip link | First Tab on page load shows a skip link; Enter jumps to the main content | todo | |
@@ -20,7 +20,7 @@ Result column: pass, fail or n/a. Put what you saw in Notes, especially for fail
 | 11 | Screen reader: errors | Turn the backend off and ask a question: the error is announced | todo | |
 | 12 | Zoom 200 percent | Browser zoom 200 percent: nothing cut off, no sideways scrolling | todo | |
 | 13 | Reflow 400 percent | Browser zoom 400 percent (narrow window): content stacks, still usable | todo | |
-| 14 | Text contrast | Lighthouse contrast audit has no failures; check muted text and the disabled states | todo | |
+| 14 | Text contrast | Lighthouse contrast audit has no failures; check muted text and the disabled states | partial | Lighthouse contrast audit passed on the loaded page; muted text and disabled states not checked by hand yet |
 | 15 | Reduced motion | Windows Settings, Accessibility, Visual effects, Animation effects off: mic animation and transitions calm down | todo | |
 | 16 | Arabic and RTL | Press L until Arabic: layout flips, order of buttons makes sense, text is not cut off | todo | |
 | 17 | Arabic with screen reader | NVDA with Arabic UI: labels read in Arabic, not as letters | todo | |
