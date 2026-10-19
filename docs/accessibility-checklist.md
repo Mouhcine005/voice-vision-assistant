@@ -18,12 +18,12 @@ Result column: pass, fail or n/a. Put what you saw in Notes, especially for fail
 | 9 | Screen reader: controls | Mode cards announce name and selected state; mic button announces recording state | todo | |
 | 10 | Screen reader: answers | A new answer is announced once (live region), not twice, not silently | todo | |
 | 11 | Screen reader: errors | Turn the backend off and ask a question: the error is announced | todo | |
-| 12 | Zoom 200 percent | Browser zoom 200 percent: nothing cut off, no sideways scrolling | todo | |
-| 13 | Reflow 400 percent | Browser zoom 400 percent (narrow window): content stacks, still usable | todo | |
+| 12 | Zoom 200 percent | Browser zoom 200 percent: nothing cut off, no sideways scrolling | pass | author test, 2026-10-18, production preview on desktop Chrome |
+| 13 | Reflow 400 percent | Browser zoom 400 percent (narrow window): content stacks, still usable | pass | author test, 2026-10-18, production preview on desktop Chrome |
 | 14 | Text contrast | Lighthouse contrast audit has no failures; check muted text and the disabled states | partial | Lighthouse contrast audit passed on the loaded page; muted text and disabled states not checked by hand yet |
-| 15 | Reduced motion | Windows Settings, Accessibility, Visual effects, Animation effects off: mic animation and transitions calm down | todo | |
-| 16 | Arabic and RTL | Press L until Arabic: layout flips, order of buttons makes sense, text is not cut off | todo | |
+| 15 | Reduced motion | Windows Settings, Accessibility, Visual effects, Animation effects off: mic animation and transitions calm down | pass | author test, 2026-10-18, Windows animation effects off |
+| 16 | Arabic and RTL | Press L until Arabic: layout flips, order of buttons makes sense, text is not cut off | pass | author test, 2026-10-18, production preview on desktop Chrome; layout flips to right-to-left, nothing cut off |
 | 17 | Arabic with screen reader | NVDA with Arabic UI: labels read in Arabic, not as letters | todo | |
 | 18 | No color-only meaning | Quality warnings and errors also have text, not only a red or yellow color | todo | |
-| 19 | Touch targets on phone | Installed app on phone: buttons easy to hit, no tiny targets | todo | |
+| 19 | Touch targets on phone | Installed app on phone: buttons easy to hit, no tiny targets | not tested | demo is on a laptop; the app has not been tried on a phone |
 | 20 | Offline start | Airplane mode, open the installed app: it loads and shows a clear message, not a blank page | todo | |
