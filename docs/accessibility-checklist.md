@@ -14,10 +14,10 @@ Result column: pass, fail or n/a. Put what you saw in Notes, especially for fail
 | 5 | Shortcuts work | Space, Esc, P, C, R, T, 1 to 5, L, N, H, J as listed in the README | pass | tested 1 to 5, L, P, H, J, N, T, Space, Esc and R on desktop (author test, 2026-10-18); C opens the file picker there (capture input, so camera on phones, not tested on a phone) |
 | 6 | Shortcuts ignored while typing | Type the letter P in the question field: it must not open the photo picker | pass | keyboard-only test by the author, 2026-10-18, production preview |
 | 7 | Dialogs | Open help and settings: focus moves inside, Tab stays inside, Esc closes, focus returns to the button | pass | keyboard-only test by the author, 2026-10-18, production preview |
-| 8 | Screen reader: page structure | NVDA: page title, headings list (H key), landmarks (D key) make sense | todo | |
-| 9 | Screen reader: controls | Mode cards announce name and selected state; mic button announces recording state | todo | |
-| 10 | Screen reader: answers | A new answer is announced once (live region), not twice, not silently | todo | |
-| 11 | Screen reader: errors | Turn the backend off and ask a question: the error is announced | todo | |
+| 8 | Screen reader: page structure | NVDA: page title, headings list (H key), landmarks (D key) make sense | pass | NVDA Speech Viewer log, 2026-10-19, Chrome on the dev server (localhost:5173): title, skip link, banner, main landmark and h1/h2 structure announced correctly |
+| 9 | Screen reader: controls | Mode cards announce name and selected state; mic button announces recording state | partial | Names, roles and states read for language, Settings, Help, Jury, 5 mode radios, photo buttons, mic; photo buttons read 'No file chosen' even after a photo was sent. Not yet checked: mic recording state, changing mode, dialogs |
+| 10 | Screen reader: answers | A new answer is announced once (live region), not twice, not silently | partial | Answer announced once after 'Thinking...' in the Speech Viewer; not yet confirmed by ear whether the app's own voice overlaps NVDA |
+| 11 | Screen reader: errors | Turn the backend off and ask a question: the error is announced | pass | Backend stopped: error announced as an alert ('The vision service is not answering right now. Please try again.'); text appears twice in the Speech Viewer, to confirm by ear |
 | 12 | Zoom 200 percent | Browser zoom 200 percent: nothing cut off, no sideways scrolling | pass | author test, 2026-10-18, production preview on desktop Chrome |
 | 13 | Reflow 400 percent | Browser zoom 400 percent (narrow window): content stacks, still usable | pass | author test, 2026-10-18, production preview on desktop Chrome |
 | 14 | Text contrast | Lighthouse contrast audit has no failures; check muted text and the disabled states | partial | Lighthouse contrast audit passed on the loaded page; muted text and disabled states not checked by hand yet |
