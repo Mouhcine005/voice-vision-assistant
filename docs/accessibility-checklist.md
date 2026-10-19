@@ -11,7 +11,7 @@ Result column: pass, fail or n/a. Put what you saw in Notes, especially for fail
 | 2 | Keyboard only: every control reachable | Put the mouse away. Tab and Shift+Tab through the whole page | pass | keyboard-only test by the author, 2026-10-18, production preview |
 | 3 | Visible focus on every control | Look for the yellow outline while tabbing | pass | keyboard-only test by the author, 2026-10-18, production preview |
 | 4 | Skip link | First Tab on page load shows a skip link; Enter jumps to the main content | pass | keyboard-only test by the author, 2026-10-18, production preview |
-| 5 | Shortcuts work | Space, Esc, P, C, R, T, 1 to 5, L, N, H, J as listed in the README | partial | tested 1 to 5, L, P, H, J, N; Space, Esc, C, R and T not yet checked |
+| 5 | Shortcuts work | Space, Esc, P, C, R, T, 1 to 5, L, N, H, J as listed in the README | partial | tested 1 to 5, L, P, H, J, N; C opens the file picker on desktop (capture input; camera on phones, not tested on a phone); Space, Esc, R and T not yet checked |
 | 6 | Shortcuts ignored while typing | Type the letter P in the question field: it must not open the photo picker | pass | keyboard-only test by the author, 2026-10-18, production preview |
 | 7 | Dialogs | Open help and settings: focus moves inside, Tab stays inside, Esc closes, focus returns to the button | pass | keyboard-only test by the author, 2026-10-18, production preview |
 | 8 | Screen reader: page structure | NVDA: page title, headings list (H key), landmarks (D key) make sense | todo | |

@@ -82,7 +82,7 @@ They use physical key codes, so they also work on Arabic and AZERTY layouts. The
 | Space | Start or stop recording |
 | Esc | Cancel recording or stop speaking |
 | P | Choose a photo |
-| C | Open the camera |
+| C | Take a photo (camera on phones, file picker on desktop) |
 | R | Repeat the last answer |
 | T | Focus the question field |
 | 1 to 5 | Choose a mode |
