@@ -85,7 +85,8 @@ def cache_file(prep, model: str) -> Path:
 
 def make_result(row: dict, model: str, **extra) -> dict:
     result = {k: "" for k in FIELDS}
-    result.update(id=row["id"], category=row["category"], mode=row["mode"], model=model, status="ok", **extra)
+    result.update(id=row["id"], category=row["category"], mode=row["mode"], model=model, status="ok")
+    result.update(extra)
     return result
 
 
